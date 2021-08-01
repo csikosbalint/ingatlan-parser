@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  S3Bucket:
+    Type: String
+Resources:
+  # See https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+  # for more info to see how to tune the lambda function configs based on your use case.
+  AppFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: java11
+      Handler: org.ingatlan.App::handleRequest
+      Timeout: 180
+      MemorySize: 512
+      Tracing: Active
+      CodeUri: ./target/ingatlan-app.jar
+      # Attach policies here to give the function permission to access other AWS resources if needed
+      # See: https://github.com/awslabs/serverless-application-model/blob/master/docs/policy_templates.rst
+      # eg:
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Sub "${S3Bucket}"
+        - CloudWatchPutMetricPolicy: { }
