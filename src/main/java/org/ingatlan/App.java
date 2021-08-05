@@ -3,7 +3,10 @@ package org.ingatlan;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.*;
+import com.gargoylesoftware.htmlunit.html.DomNode;
+import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
+import com.gargoylesoftware.htmlunit.html.HtmlElement;
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -15,13 +18,16 @@ import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
 import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
 import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -39,7 +45,8 @@ public class App implements RequestHandler<Map<String, String>, Object> {
         String filter = input.get("filter");
         String bucket = input.get("bucket");
         String search = domain + "szukites/" + filter;
-        String folder = "ingatlan-" + filter + "/" + time + "/";
+        String base = "ingatlan-" + filter;
+        String folder = base + "/" + time + "/";
         System.out.println(search);
         System.out.println(folder);
         WebClient client = new WebClient();
@@ -75,6 +82,7 @@ public class App implements RequestHandler<Map<String, String>, Object> {
                 e.printStackTrace();
             }
         }
+        // today
         Map<String, JSONObject> jsons =
                 list.stream()
                         .collect(Collectors.toMap(this::getID, this::getJSON, (first, current) -> {
@@ -85,6 +93,8 @@ public class App implements RequestHandler<Map<String, String>, Object> {
                             return first;
                         }));
         DescriptiveStatistics stats = new DescriptiveStatistics();
+
+        // prices
         List<Double> prices =
                 jsons.values().stream()
                         .map(this::getPrice).collect(Collectors.toList());
@@ -98,6 +108,65 @@ public class App implements RequestHandler<Map<String, String>, Object> {
 
         String ns = nsl.subList(2, nsl.size()).toString();
 
+        // yesterday
+        Set<String> yesterdayObjectKeys = s3.listObjects(
+                        ListObjectsRequest.builder()
+                                .bucket(bucket)
+                                .prefix(
+                                        base + "/" +
+                                                ZonedDateTime.ofInstant(
+                                                                Instant.now().minus(1, ChronoUnit.DAYS),
+                                                                ZoneOffset.UTC)
+                                                        .format(DateTimeFormatter.ISO_INSTANT)
+                                                        .split("T")[0])
+                                .build())
+                .contents()
+                .stream()
+                .map(this::getID)
+                .collect(Collectors.toSet());
+        Set<String> todayObjectKeys = new HashSet<>(jsons.keySet());
+
+        Set<String> newToday = new HashSet<>(todayObjectKeys);
+        newToday.removeAll(yesterdayObjectKeys);
+        if (newToday.size() == jsons.size()) {
+            // every ad is new means: no data from yesterday
+            newToday = new HashSet<>();
+        }
+
+        Set<String> soldYesterday = new HashSet<>(yesterdayObjectKeys);
+        soldYesterday.removeAll(todayObjectKeys);
+
+        // Metrics
+        cw.putMetricData(PutMetricDataRequest.builder()
+                .metricData(
+                        MetricDatum.builder()
+                                .dimensions(Dimension.builder()
+                                        .name("Sold")
+                                        .value("M_HUF")
+                                        .build())
+                                .metricName("Stats")
+                                .unit(StandardUnit.NONE)
+                                .timestamp(Instant.parse(time))
+                                .value(Double.parseDouble(String.valueOf(soldYesterday.size())))
+                                .build()
+                )
+                .namespace(ns)
+                .build());
+        cw.putMetricData(PutMetricDataRequest.builder()
+                .metricData(
+                        MetricDatum.builder()
+                                .dimensions(Dimension.builder()
+                                        .name("New")
+                                        .value("M_HUF")
+                                        .build())
+                                .metricName("Stats")
+                                .unit(StandardUnit.NONE)
+                                .timestamp(Instant.parse(time))
+                                .value(Double.parseDouble(String.valueOf(newToday.size())))
+                                .build()
+                )
+                .namespace(ns)
+                .build());
         cw.putMetricData(PutMetricDataRequest.builder()
                 .metricData(
                         MetricDatum.builder()
@@ -173,6 +242,8 @@ public class App implements RequestHandler<Map<String, String>, Object> {
                 )
                 .namespace(ns)
                 .build());
+
+        // persist in S3
         jsons.forEach((key, value) -> {
             try {
                 s3.putObject(
@@ -218,6 +289,10 @@ public class App implements RequestHandler<Map<String, String>, Object> {
                 )
                         .replaceAll(" ", "")
                         .toUpperCase(Locale.ROOT);
+    }
+
+    private String getID(S3Object e) {
+        return e.key().split("/")[e.key().split("/").length - 1].replaceAll(".json", "");
     }
 
     private JSONObject getJSON(HtmlElement e) {
