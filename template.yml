@@ -21,4 +21,6 @@ Resources:
       Policies:
         - S3WritePolicy:
             BucketName: !Sub "${S3Bucket}"
+        - S3ReadPolicy:
+            BucketName: !Sub "${S3Bucket}"
         - CloudWatchPutMetricPolicy: { }
