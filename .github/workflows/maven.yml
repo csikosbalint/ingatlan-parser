@@ -23,12 +23,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          projectBaseDir: src
+          projectBaseDir: sql
           args: >
             -Dsonar.projectKey=BalintTestProject
             -Dsonar.organization=csikosbalint
             -Dsonar.projectName=SQLScan
-            -Dsonar.tsql.file.suffixes=.sql
   build:
     needs: sonarcloud
     runs-on: ubuntu-latest
