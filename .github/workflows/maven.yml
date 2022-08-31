@@ -28,6 +28,7 @@ jobs:
             -Dsonar.projectKey=BalintTestProject
             -Dsonar.organization=csikosbalint
             -Dsonar.projectName=SQLScan
+            -Dsonar.tsql.file.suffixes=.sql
   build:
     needs: sonarcloud
     runs-on: ubuntu-latest
