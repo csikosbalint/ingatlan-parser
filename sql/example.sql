@@ -139,3 +139,5 @@ WHERE LAST_NAME LIKE '%PONT'
 
 SELECT HASHBYTES('SHA1', MyColumn) FROM dbo.MyTable;
 
+DELETE FROM countries
+UPDATE employee SET status = 'retired' FROM table1 AS employee
