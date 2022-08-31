@@ -24,6 +24,10 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           projectBaseDir: src/main/java/org/ingatlan
+          args: >
+            -Dsonar.projectKey=BalintTestProject
+            -Dsonar.organization=csikosbalint
+            -Dsonar.verbose=true
   build:
     needs: sonarcloud
     runs-on: ubuntu-latest
