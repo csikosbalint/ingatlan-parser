@@ -24,9 +24,6 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           projectBaseDir: src/main/java/org/ingatlan
-          args: >
-            -Dsonar.python.coverage.reportPaths=coverage.xml
-            -Dsonar.verbose=true
   build:
     needs: sonarcloud
     runs-on: ubuntu-latest
