@@ -124,3 +124,18 @@ INSERT INTO `user_details` (`user_id`, `username`, `first_name`, `last_name`, `g
 (98, 'michael44', 'cooper', 'maria', 'Female', 'dd4d053a12a3d8450166dba9177bac2c', 1),
 (99, 'michael36', 'miller', 'cooper', 'Female', '36ab21ccb2a64acd5351bbb59753df9d', 1),
 (100, 'smith93', 'bell', 'mike', 'Female', '8fbfdb81391ef264ae8b0df7e7e91d25', 1);
+
+SELECT *
+FROM fruit
+WHERE type='apple' AND type='orange'  -- Noncompliant
+
+CREATE PROCEDURE USER_BY_EMAIL(@email VARCHAR(255)) AS
+BEGIN
+  EXEC('USE AuthDB; SELECT id FROM user WHERE email = ''' + @email + ''' ;'); -- Sensitive: could inject code using @email
+END
+
+SELECT FIRST_NAME, LAST_NAME FROM PERSONS
+WHERE LAST_NAME LIKE '%PONT'
+
+SELECT HASHBYTES('SHA1', MyColumn) FROM dbo.MyTable;
+
