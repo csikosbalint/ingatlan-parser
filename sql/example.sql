@@ -14,3 +14,7 @@ SELECT HASHBYTES('SHA1', MyColumn) FROM dbo.MyTable;
 
 DELETE FROM countries
 UPDATE employee SET status = 'retired' FROM table1 AS employee
+
+SELECT *
+FROM fruit2
+WHERE type='apple2' AND type='orange2'  -- Noncompliant2
