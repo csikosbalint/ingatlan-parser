@@ -27,7 +27,7 @@ jobs:
             -Dsonar.projectKey=BalintTestProject
             -Dsonar.organization=csikosbalint
             -Dsonar.projectName=SQLScan
-            -Dsonar.verbose=true
+            -Dsonar.qualitygate.wait=true
   build:
     needs: sonarcloud
     runs-on: ubuntu-latest
